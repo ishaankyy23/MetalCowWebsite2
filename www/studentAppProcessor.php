@@ -99,7 +99,7 @@ if($responseKeys["success"]) {
       ".$studentInteresting."<br>
       <br>
       <br>
-      <i>www.MetalCowRobotics.com/join | ".date('m/d/Y h:i:s a', time())."</i>";
+      <i>https://www.metalcowrobotics.com/pages/join.html | ".date('m/d/Y h:i:s a', time())."</i>";
 
       //make a connection to google to get gmail to send email for us
       $name = "MetalCow Robotics";
@@ -156,7 +156,7 @@ $markdownMessage = "
 >*Something the student finds interesting about themself:*
 >".$studentInteresting."
 >
->_www.MetalCowRobotics.com/join | ".date('m/d/Y h:i:s a', time())."_";
+>_https://www.metalcowrobotics.com/pages/join.html | ".date('m/d/Y h:i:s a', time())."_";
 
       $curl_payload = ""
         ."{"
@@ -215,7 +215,7 @@ $markdownMessage = "
       //Build a second message to the student and parent
 
       //go back to the homepage
-      header('Location: https://www.metalcowrobotics.com/applySuccess.html');
+      header('Location: https://www.metalcowrobotics.com/pages/applySuccess.html');
       //die();
 
 } else {

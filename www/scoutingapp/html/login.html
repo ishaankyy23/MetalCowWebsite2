@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metal Cow | Scout Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="scouting-container">
+        <h2>Scout Access</h2>
+        <div class="scouting-box">
+            <div class="question">
+                <label for="compName">Competition</label>
+                <select id="compName">
+                    <option value="2026ilpe">Central Illinois (Peoria)</option>
+                    <option value="2026mokc">Greater Kansas City</option>
+                </select>
+            </div>
+            <div class="question">
+                <label for="username">Scout Name</label>
+                <input type="text" id="username" placeholder="Enter your name">
+            </div>
+            <button type="button" onclick="handleLogin()">Launch System</button>
+        </div>
+    </div>
+    <script src="../js/config.js"></script>
+    <script src="../js/script.js"></script>
+</body>
+</html>
