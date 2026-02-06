@@ -110,7 +110,7 @@ async function handleLogin() {
     }
 
     try {
-        const { error } = await supabase.auth.signInAnonymously();
+        const { error } = await scoutDB.auth.signInAnonymously();
         if (error) {
             await showModal("Login Error: " + (error.message || JSON.stringify(error)));
             return;
@@ -272,12 +272,27 @@ async function clearAllData() {
     }
 }
 // --- 7. Getting data from TBA ---
-async function fetchEventRankings() {
+async function fetchEventRankings(eventCode = '2026ilpe') {
     try {
-    const peoriaRank=https://www.thebluealliance.com/api/v3/event/{2026ilpe}/rankings
-    }
- catch (err) {
-    console.error("TBA Fetch Error:", err);
+        const response = await fetch(
+            `https://www.thebluealliance.com/api/v3/event/${eventCode}/rankings`,
+            {
+                headers: {
+                    'X-TBA-Auth-Key': TBA_API_KEY
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error(`TBA API Error: ${response.status}`);
+        }
+        
+        const rankings = await response.json();
+        console.log('Event Rankings:', rankings);
+        return rankings;
+    } catch (err) {
+        console.error("TBA Fetch Error:", err);
+        return null;
     }
 }
 

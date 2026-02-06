@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metal Cow | Blue Alliance Data</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="login.html">Login</a></li>
+            <li><a href="pit.html">Pit</a></li>
+            <li><a href="field.html">Field</a></li>
+            <li><a href="store.html">Data</a></li>
+            <li><a href="stats.html">Analytics</a></li>
+            <li><a href="tba-viewer.html">Blue Data</a></li>
+        </ul>
+    </nav>
+
+    <h2>Blue Alliance Data</h2>
+
+    <div style="background: #1a1a1a; padding: 25px; border-radius: 12px; border: 1px solid #333; box-shadow: 0 0 15px rgba(57, 255, 20, 0.1); margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <select id="dataType" style="flex: 1; min-width: 150px;">
+                <option value="teams">Teams</option>
+                <option value="events">Events (2026)</option>
+                <option value="status">API Status</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="Search teams or events" style="flex: 1; min-width: 150px;">
+            <button id="fetchBtn" style="width: auto; padding: 10px 20px;">Fetch Data</button>
+        </div>
+        
+        <div id="error" style="background: #3a1a1a; color: #ff6b6b; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #ff6b6b; display: none;"></div>
+        <div id="loading" style="text-align: center; padding: 20px; color: #888; display: none;">Loading data...</div>
+        <div id="content"></div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script>
+        const BASE_URL = 'https://www.thebluealliance.com/api/v3';
+        const API_KEY = TBA_API_KEY; // From config.js
+        
+        const fetchBtn = document.getElementById('fetchBtn');
+        const dataTypeSelect = document.getElementById('dataType');
+        const searchInput = document.getElementById('searchInput');
+        const errorDiv = document.getElementById('error');
+        const loadingDiv = document.getElementById('loading');
+        const contentDiv = document.getElementById('content');
+        
+        async function fetchData() {
+            const dataType = dataTypeSelect.value;
+            const search = searchInput.value.trim();
+            
+            try {
+                errorDiv.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+                
+                let endpoint = '';
+                let displayName = '';
+                
+                if (dataType === 'teams') {
+                    const page = search ? 0 : 0; // Default to first page
+                    endpoint = `/teams/${page}`;
+                    displayName = 'Teams';
+                } else if (dataType === 'events') {
+                    endpoint = '/events/2026';
+                    displayName = 'Events (2026)';
+                } else if (dataType === 'status') {
+                    endpoint = '/status';
+                    displayName = 'API Status';
+                }
+                
+                const response = await fetch(`${BASE_URL}${endpoint}`, {
+                    headers: {
+                        'X-TBA-Auth-Key': API_KEY
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                loadingDiv.style.display = 'none';
+                
+                renderData(data, dataType, search, displayName);
+                
+            } catch (err) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = `Error: ${err.message}`;
+            }
+        }
+        
+        function renderData(data, dataType, search, displayName) {
+            // Filter data if search is provided
+            let filtered = Array.isArray(data) ? data : [data];
+            
+            if (search && Array.isArray(filtered)) {
+                filtered = filtered.filter(item => {
+                    const searchLower = search.toLowerCase();
+                    return (item.team_number?.toString()?.includes(searchLower)) ||
+                           (item.nickname?.toLowerCase()?.includes(searchLower)) ||
+                           (item.event_code?.toLowerCase()?.includes(searchLower)) ||
+                           (item.name?.toLowerCase()?.includes(searchLower));
+                });
+            }
+            
+            // Limit to top 5
+            filtered = filtered.slice(0, 5);
+            
+            if (!filtered || filtered.length === 0) {
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">No data found</div>';
+                return;
+            }
+            
+            if (dataType === 'status') {
+                renderStatusTable(filtered[0]);
+            } else if (dataType === 'teams') {
+                renderTeamsTable(filtered);
+            } else if (dataType === 'events') {
+                renderEventsTable(filtered);
+            }
+        }
+        
+        function renderTeamsTable(teams) {
+            let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Team #</th>
+                            <th>Name</th>
+                            <th>Nickname</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            teams.forEach(team => {
+                const location = `${team.city || ''} ${team.state || ''} ${team.country || ''}`.trim();
+                html += `
+                    <tr>
+                        <td><strong>${team.team_number}</strong></td>
+                        <td>${team.name || 'N/A'}</td>
+                        <td>${team.nickname || 'N/A'}</td>
+                        <td>${location}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            contentDiv.innerHTML = html;
+        }
+        
+        function renderEventsTable(events) {
+            let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            events.forEach(event => {
+                html += `
+                    <tr>
+                        <td><strong>${event.event_code}</strong></td>
+                        <td>${event.name || 'N/A'}</td>
+                        <td>${event.start_date || 'N/A'}</td>
+                        <td>${event.end_date || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            contentDiv.innerHTML = html;
+        }
+        
+        function renderStatusTable(status) {
+            let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            for (const [key, value] of Object.entries(status)) {
+                html += `
+                    <tr>
+                        <td><strong>${key}</strong></td>
+                        <td>${
+                            typeof value === 'object' 
+                                ? JSON.stringify(value) 
+                                : value
+                        }</td>
+                    </tr>
+                `;
+            }
+            
+            html += `</tbody></table>`;
+            contentDiv.innerHTML = html;
+        }
+        
+        // Event listeners
+        fetchBtn.addEventListener('click', fetchData);
+        
+        // Fetch on Enter key
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') fetchData();
+        });
+        
+        // Load initial data
+        window.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+</body>
+</html>
