@@ -110,7 +110,7 @@ async function handleLogin() {
     }
 
     try {
-        const { error } = await scoutDB.auth.signInAnonymously();
+        const { error } = await supabase.auth.signInAnonymously();
         if (error) {
             await showModal("Login Error: " + (error.message || JSON.stringify(error)));
             return;
@@ -269,6 +269,15 @@ async function clearAllData() {
                 await showModal("Error: " + err.message);
             }
         }
+    }
+}
+// --- 7. Getting data from TBA ---
+async function fetchEventRankings() {
+    try {
+    const peoriaRank=https://www.thebluealliance.com/api/v3/event/{2026ilpe}/rankings
+    }
+ catch (err) {
+    console.error("TBA Fetch Error:", err);
     }
 }
 
