@@ -103,12 +103,18 @@ function showPrompt(message, title, defaultValue = '') {
 async function handleLogin() {
     const user = document.getElementById('username').value;
     const comp = document.getElementById('compName').value;
+    const pass = document.getElementById('password').value;
 
-    if (!user || !comp) {
-        await showModal("Please enter both Name and Competition!");
+    if (!user || !comp ) {
+        await showModal("Please enter both competition and name!");
         return;
     }
 
+    // Logic Check: Does the typed password match the master password?
+    if (typedPass !== 'C3p0R2d2') {
+        await showModal("Incorrect Password!");
+        return;
+    }
     try {
         const { error } = await scoutDB.auth.signInAnonymously();
         if (error) {
