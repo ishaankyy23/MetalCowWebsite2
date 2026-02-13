@@ -5,6 +5,22 @@
     <title>Metal Cow | Cloud Data</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .data-container {
+            display: flex;
+            gap: 30px;
+            margin: 20px;
+        }
+        .scouting-data, .blue-alliance-data {
+            flex: 1;
+            min-width: 0;
+            overflow-x: auto;
+        }
+        .scouting-data table, .blue-alliance-data table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+    </style>
 </head>
 <body>
     <nav>
@@ -17,24 +33,213 @@
             <li><a href="tba-viewer.html">Blue Data</a></li>
         </ul>
     </nav>
-    <h2>Saved Scouting Data</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Type</th>
-                <th>Team</th>
-                <th>Comp</th>
-                <th>Scout</th>
-                <th>Quick Info</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
-    <div class="admin-controls" style="margin-top: 20px; text-align: center;">
-        <button type="button" id="clearBtn" onclick="clearAllData()">
-            ⚠️ Clear All Cloud Data
-        </button>
-    </div>
+
+    <div class="data-container">
+        <div class="scouting-data">
+            <h2>Saved Scouting Data</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Team</th>
+                        <th>Comp</th>
+                        <th>Scout</th>
+                        <th>Quick Info</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div class="admin-controls" style="margin-top: 20px; text-align: center;">
+                <button type="button" id="clearBtn" onclick="clearAllData()">
+                    ⚠️ Clear All Cloud Data
+                </button>
+            </div>
+        </div>
+
+        
+
+    <script src="../js/config.js"></script>
+    <script>
+        const BASE_URL = 'https://www.thebluealliance.com/api/v3';
+        const API_KEY = TBA_API_KEY; // From config.js
+        
+        const fetchBtn = document.getElementById('fetchBtn');
+        const dataTypeSelect = document.getElementById('dataType');
+        const searchInput = document.getElementById('searchInput');
+        const errorDiv = document.getElementById('error');
+        const loadingDiv = document.getElementById('loading');
+        const contentDiv = document.getElementById('content');
+        
+        async function fetchData() {
+            const dataType = dataTypeSelect.value;
+            const search = searchInput.value.trim();
+            
+            try {
+                errorDiv.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+                
+                let endpoint = '';
+                let displayName = '';
+                
+                if (dataType === 'teams') {
+                    const page = search ? 0 : 0; // Default to first page
+                    endpoint = `/teams/${page}`;
+                    displayName = 'Teams';
+                } else if (dataType === 'events') {
+                    endpoint = '/events/2026';
+                    displayName = 'Events (2026)';
+                } else if (dataType === 'status') {
+                    endpoint = '/status';
+                    displayName = 'API Status';
+                }
+                
+                const response = await fetch(`${BASE_URL}${endpoint}`, {
+                    headers: {
+                        'X-TBA-Auth-Key': API_KEY
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                loadingDiv.style.display = 'none';
+                
+                renderData(data, dataType, search, displayName);
+                
+            } catch (err) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = `Error: ${err.message}`;
+            }
+        }
+        
+        function renderData(data, dataType, search, displayName) {
+            // Filter data if search is provided
+            let filtered = Array.isArray(data) ? data : [data];
+            
+            if (search && Array.isArray(filtered)) {
+                filtered = filtered.filter(item => {
+                    const searchLower = search.toLowerCase();
+                    return (item.team_number?.toString()?.includes(searchLower)) ||
+                           (item.nickname?.toLowerCase()?.includes(searchLower)) ||
+                           (item.event_code?.toLowerCase()?.includes(searchLower)) ||
+                           (item.name?.toLowerCase()?.includes(searchLower));
+                });
+            }
+            
+            // Limit to top 5
+            filtered = filtered.slice(0, 5);
+            
+            if (!filtered || filtered.length === 0) {
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">No data found</div>';
+                return;
+            }
+            
+            if (dataType === 'status') {
+                renderStatusTable(filtered[0]);
+            } else if (dataType === 'teams') {
+                renderTeamsTable(filtered);
+            } else if (dataType === 'events') {
+                renderEventsTable(filtered);
+            }
+        }
+        
+        function renderTeamsTable(teams) {
+            let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Team #</th>
+                            <th>Name</th>
+                            <th>Nickname</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            teams.forEach(team => {
+                const location = `${team.city || ''} ${team.state || ''} ${team.country || ''}`.trim();
+                html += `
+                    <tr>
+                        <td><strong>${team.team_number}</strong></td>
+                        <td>${team.name || 'N/A'}</td>
+                        <td>${team.nickname || 'N/A'}</td>
+                        <td>${location}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            contentDiv.innerHTML = html;
+        }
+        
+        function renderEventsTable(events) {
+            let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            events.forEach(event => {
+                html += `
+                    <tr>
+                        <td><strong>${event.event_code}</strong></td>
+                        <td>${event.name || 'N/A'}</td>
+                        <td>${event.start_date || 'N/A'}</td>
+                        <td>${event.end_date || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            contentDiv.innerHTML = html;
+        }
+        
+        function renderStatusTable(status) {
+            let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            for (const [key, value] of Object.entries(status)) {
+                html += `
+                    <tr>
+                        <td><strong>${key}</strong></td>
+                        <td>${
+                            typeof value === 'object' 
+                                ? JSON.stringify(value) 
+                                : value
+                        }</td>
+                    </tr>
+                `;
+            }
+            
+            html += `</tbody></table>`;
+            contentDiv.innerHTML = html;
+        }
+        
+        // Event listeners
+        fetchBtn.addEventListener('click', fetchData);
+        
+        // Fetch on Enter key
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') fetchData();
+        });
+        
+        // Load initial data
+        window.addEventListener('DOMContentLoaded', fetchData);
+    </script>
     <script src="../js/config.js"></script>
     <script src="../js/script.js"></script>
 </body>
